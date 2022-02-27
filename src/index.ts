@@ -55,30 +55,11 @@ function checkIfApiKeys(creds: Credential[]) {
     return false;
   }
 
-  if (apiKey.length !== 20 && /KE/.test(apiKey.slice(0, 2))) {
+  if (apiKey.length !== 20 && /KE/.tes(apiKey.slice(0, 2))) {
     return false;
   }
 
   return true;
-}
-
-/**
- * checks credentials and generates the authorization value for the header
- * @param accountSid the Account Sid
- * @param credentials AuthToken or ApiKey, ApiSecret
- * @returns string
- */
-function authiorizationHandler(accountSid: string, ...credentials: (Credential | null)[]): string | null {
-  if (!credentials) return null;
-
-  if (credentials.length === 1 && credentials[0]) {
-    return generateAuthorizationString(accountSid, credentials[0]);
-  }
-
-  if (credentials.length === 2 && credentials[0] && credentials[1]) {
-    return generateAuthorizationString(credentials[0], credentials[1]);
-  }
-  return null;
 }
 
 function checkCredentials(tests: CredentialSample): { isValid: boolean; message?: string } {
@@ -110,6 +91,25 @@ function checkCredentials(tests: CredentialSample): { isValid: boolean; message?
   }
 
   return { isValid: true };
+}
+
+/**
+ * generates the authorization value for the header
+ * @param accountSid the Account Sid
+ * @param credentials AuthToken or ApiKey, ApiSecret
+ * @returns string
+ */
+function authiorizationHandler(accountSid: string, ...credentials: (Credential | null)[]): string | null {
+  if (!credentials) return null;
+
+  if (credentials.length === 1 && credentials[0]) {
+    return generateAuthorizationString(accountSid, credentials[0]);
+  }
+
+  if (credentials.length === 2 && credentials[0] && credentials[1]) {
+    return generateAuthorizationString(credentials[0], credentials[1]);
+  }
+  return null;
 }
 
 /**
