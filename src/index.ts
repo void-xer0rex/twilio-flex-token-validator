@@ -55,7 +55,7 @@ function checkIfApiKeys(creds: Credential[]) {
     return false;
   }
 
-  if (apiKey.length !== 20 && /KE/.tes(apiKey.slice(0, 2))) {
+  if (apiKey.length !== 20 && /KE/.test(apiKey.slice(0, 2))) {
     return false;
   }
 
