@@ -20,7 +20,7 @@ describe('index.ts', () => {
   const mockHttps = () => {
     return nock(iamUrl).post(() => true);
   };
-
+  /* eslint-disable */
   describe('validator', () => {
     afterEach(() => {
       nock.cleanAll();
@@ -49,6 +49,24 @@ describe('index.ts', () => {
         await validator('token-123', 'AC123', '');
       } catch (err) {
         expect(err).toContain('Unauthorized: AccountSid or AuthToken was not provided');
+        done();
+      }
+    });
+
+    it('should fail if apiSecret is empty', async (done) => {
+      try {
+        await validator('token-123', 'AC123', 'KE123456789098765432', '');
+      } catch (err) {
+        expect(err).toContain('Unauthorized: apiKey or apiSecret was not provided');
+        done();
+      }
+    });
+
+    it('should fail if apiKey is empty', async (done) => {
+      try {
+        await validator('token-123', 'AC123', '', 'apiSecret');
+      } catch (err) {
+        expect(err).toContain('Unauthorized: apiKey or apiSecret was not provided');
         done();
       }
     });

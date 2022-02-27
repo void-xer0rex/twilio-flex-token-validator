@@ -23,22 +23,43 @@ export interface Event {
   TokenResult?: ValidationResponse;
 }
 
-export interface CredentialTypes {
+export interface CredentialSample {
   token: string;
-  accountSid: string;
-  credentials: (Credential | null)[];
+  accountSid: AccountSid;
+  credentials: Credential[];
 }
 
 export type Callback = (error: Error | string | null, response: Response<ValidationResponse>) => void;
 export type HandlerFn = (context: Context, event: Event, callback: Callback) => void;
+export type AccountSid = string;
 export type AuthToken = string;
 export type ApiKey = string;
 export type ApiSecret = string;
-export type Credential = AuthToken | (ApiKey & ApiSecret);
+export type Username = AccountSid | ApiKey;
+export type Password = AuthToken | ApiSecret;
+export type Credential = string;
+export type Credentials = (Username & Password)[];
 
 function generateAuthorizationString(key: string, secret: string): string {
   const authz = Buffer.from(`${key}:${secret}`);
   return `Basic ${authz.toString('base64')}`;
+}
+
+function checkIfApiKeys(creds: Credential[]) {
+  const [apiKey, apiSecret] = creds;
+  if (Object.keys(creds).length !== 2) {
+    return false;
+  }
+
+  if (!apiKey && !apiSecret) {
+    return false;
+  }
+
+  if (apiKey.length !== 20 && /KE/.exec(apiKey.slice(0, 2))) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -60,7 +81,7 @@ function authiorizationHandler(accountSid: string, ...credentials: (Credential |
   return null;
 }
 
-function checkCredentials(tests: CredentialTypes): { isValid: boolean; message?: string } {
+function checkCredentials(tests: CredentialSample): { isValid: boolean; message?: string } {
   if (!tests.token) {
     return {
       isValid: false,
@@ -75,10 +96,16 @@ function checkCredentials(tests: CredentialTypes): { isValid: boolean; message?:
     };
   }
 
-  if (!tests.credentials) {
+  if (!tests.credentials && Array.isArray(tests.credentials)) {
     return {
       isValid: false,
       message: 'Unauthorized: AuthToken or APIKeys not provided',
+    };
+  }
+  if (tests.credentials.length === 2 && checkIfApiKeys(tests.credentials as Credentials)) {
+    return {
+      isValid: false,
+      message: 'Unauthorized: apiKey or apiSecret was not provided',
     };
   }
 
@@ -96,7 +123,7 @@ function checkCredentials(tests: CredentialTypes): { isValid: boolean; message?:
 export const validator = async (
   token: string,
   accountSid: string,
-  ...credentials: (Credential | null)[]
+  ...credentials: Credential[]
 ): Promise<ValidationResponse> => {
   // eslint-disable-next-line
   const isValidationError = (x: any): x is ValidtionError => { // skipcq: JS-0323
@@ -104,7 +131,7 @@ export const validator = async (
   };
 
   return new Promise((resolve, reject) => {
-    const creds: CredentialTypes = { token, accountSid, credentials };
+    const creds: CredentialSample = { token, accountSid, credentials };
     const checkResult = checkCredentials(creds);
     if (!checkResult.isValid) {
       reject(checkResult.message);
@@ -178,11 +205,9 @@ export const functionValidator = (handlerFn: HandlerFn): HandlerFn => {
     const { ACCOUNT_SID: accountSid } = context;
     const { Token: token } = event;
 
-    const credentials: (Credential | null)[] = ['AUTH_TOKEN', 'API_KEY', 'API_SECRET'].filter(
-      (key: string): Credential | null => {
-        return context[key] ? context[key] : null;
-      },
-    );
+    const credentials: Credential[] = ['AUTH_TOKEN', 'API_KEY', 'API_SECRET'].filter((key: string) => {
+      return context[key] ? context[key] : null;
+    });
 
     return validator(token, accountSid, ...credentials)
       .then((result) => {
