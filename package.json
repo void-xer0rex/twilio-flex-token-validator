@@ -63,6 +63,6 @@
     "node": ">=10"
   },
   "dependencies": {
-    "twilio": "^3.74.0"
+    "twilio": "^4.6.0"
   }
 }
